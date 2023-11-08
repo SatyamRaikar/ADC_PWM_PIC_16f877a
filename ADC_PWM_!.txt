@@ -1,0 +1,221 @@
+// PIC16F877A Configuration Bit Settings
+// 'C' source line config statements
+// CONFIG
+#pragma config FOSC = EXTRC     // Oscillator Selection bits (RC oscillator)
+#pragma config WDTE = OFF        // Watchdog Timer Enable bit (WDT enabled)
+#pragma config PWRTE = OFF      // Power-up Timer Enable bit (PWRT disabled)
+#pragma config BOREN = OFF       // Brown-out Reset Enable bit (BOR enabled)
+#pragma config LVP = OFF         // Low-Voltage (Single-Supply) In-Circuit Serial Programming Enable bit (RB3/PGM pin has PGM function; low-voltage programming enabled)
+#pragma config CPD = OFF        // Data EEPROM Memory Code Protection bit (Data EEPROM code protection off)
+#pragma config WRT = OFF        // Flash Program Memory Write Enable bits (Write protection off; all program memory may be written to by EECON control)
+#pragma config CP = OFF         // Flash Program Memory Code Protection bit (Code protection off)
+
+// #pragma config statements should precede project file includes.
+// Use project enums instead of #define for ON and OFF.
+
+#include <xc.h>
+#define _XTAL_FREQ 6000000
+
+void init(void);
+void Lcd_Command(unsigned char);
+void Lcd_Data(unsigned char);
+void Lcd_Output(unsigned int,unsigned char);
+void PWM(unsigned char);
+unsigned char n,j;
+unsigned int k[10];
+unsigned int lowvalue,hivalue,m,delaycount,lowvalue1,hivalue1;
+unsigned long value,voltage,value1,voltage1;
+
+
+void main()
+{
+ init();
+ while(1)
+ {   
+  
+    PWM(1);
+   __delay_ms(45);
+    PWM(2);
+    __delay_ms(45);
+ }    
+    
+}
+void init(void)
+{
+  TRISA=0X0F;   
+  TRISC=0X00;
+  TRISD=0X00;
+  ADCON1=0X00; 
+CCP1CON=0X3C;
+CCP2CON=0X3C;
+T2CON=0X06;
+PR2=0X5D;
+  
+  Lcd_Command(0x38);
+  __delay_ms(100);
+  Lcd_Command(0x38);
+  __delay_ms(100);
+  Lcd_Command(0x38);
+  __delay_ms(100);
+  Lcd_Command(0x38);
+  __delay_ms(100);
+  Lcd_Command(0x06);
+  __delay_ms(100);
+  Lcd_Command(0x0C);
+  __delay_ms(100);
+  Lcd_Command(0x01);
+  __delay_ms(100);
+  Lcd_Command(0x80);
+  Lcd_Data('C');
+  Lcd_Data('H');
+  Lcd_Data(0x31);
+  Lcd_Data(':');
+  Lcd_Command(0xC0);
+  Lcd_Data('C');
+  Lcd_Data('H');
+  Lcd_Data(0x32);
+  Lcd_Data(':');
+  
+}
+
+    
+void Lcd_Command(unsigned char t){
+    PORTC&=~0x08;
+    PORTD=t;
+    PORTC|=0x01;
+    PORTC&=~0x01;
+    __delay_ms(50);
+}
+
+void Lcd_Data(unsigned char t){
+    PORTC|=0x08;
+    PORTD=t;
+    PORTC|=0x01;
+    PORTC&=~0x01;
+    __delay_ms(5);
+}
+void PWM(unsigned char f)
+{   if(f==1)
+  {
+    ADCON0=0X85;
+  }
+   else
+   {
+    ADCON0=0XB5;
+   }
+    
+     while(ADCON0&0X04);
+     lowvalue=ADRESL;
+     hivalue=ADRESH;
+     value=((unsigned int)hivalue<<2)+((unsigned int)lowvalue>>8);
+     if(f==1)
+     {
+     voltage=value*1027/1023;
+    Lcd_Output(voltage,1);
+      CCPR1L=(voltage)>>2;
+     CCP1CON=(CCP1CON&0X0C)+((voltage&0x03)<<4);
+     __delay_ms(100);
+     }
+     else
+     {voltage=value*339/1023;
+    Lcd_Output(voltage,2);
+      CCPR2L=(voltage)>>2;
+     CCP2CON=(CCP2CON&0X0C)+((voltage&0x03)<<4);
+     __delay_ms(100);
+         
+     }
+}
+
+void Lcd_Output(unsigned int i,unsigned char y)
+{unsigned char s;
+for(j=0;j<=4;j++)
+{
+    k[j]=0;
+}
+if(y==1)
+{
+    Lcd_Command(0x84);
+}
+else
+{
+    
+Lcd_Command(0xC4);
+}
+    j=1;
+     m=i;
+     if(m==0)
+     {
+        
+         Lcd_Data(0x20);
+         Lcd_Data(0x20);
+         Lcd_Data(0x20);
+         Lcd_Data(0x30);
+     
+     }
+     else
+     {
+    while(m!=0)
+    {
+        s=m-(m/10)*10;
+        k[j]=s;
+        j++;
+        m=m/10;
+    }
+    k[j]='\0';
+    j=j-1;
+    if(k[4]>0)
+    {   
+        
+        n=0x30+k[4];
+        Lcd_Data(n);
+        
+        n=0x30+k[3];
+        Lcd_Data(n);
+        
+        n=0x30+k[2];
+        Lcd_Data(n);
+       
+        n=0x30+k[1];
+        Lcd_Data(n);
+        
+    }
+    
+    else if(k[3]>0)
+    {
+        Lcd_Data(0x20);
+        n=0x30+k[3];
+       Lcd_Data(n);
+        n=0x30+k[2];
+      Lcd_Data(n);
+       n=0x30+k[1];
+       Lcd_Data(n);
+        
+    }
+    else if(k[2]>0)
+    {  
+        Lcd_Data(0x20);
+       
+        Lcd_Data(0x20);
+        n=0x30+k[2];
+       
+        Lcd_Data(n);
+        n=0x30+k[1];
+        
+        Lcd_Data(n);
+       
+        
+    }
+    else if(k[1]>0)
+    {
+        Lcd_Data(0x20);
+         Lcd_Data(0x20);
+         Lcd_Data(0x20);
+         n=0x30+k[1];
+         Lcd_Data(n);
+    }
+    }
+   
+    n=0x56;
+    Lcd_Data(n);
+    
+   }
